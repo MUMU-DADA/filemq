@@ -19,6 +19,11 @@ func (mq *TimeoutMQData) Marshal() ([]byte, error) {
 	return json.Marshal(mq)
 }
 
+// Check 检查数据是否超时
+func (mq *TimeoutMQData) Check() bool {
+	return time.Now().After(mq.Timeout)
+}
+
 // TimeoutMQDataUnmarshal 队列内交互数据反序列化
 func TimeoutMQDataUnmarshal(bytes []byte) (MQData, error) {
 	var temp TimeoutMQData
@@ -27,9 +32,4 @@ func TimeoutMQDataUnmarshal(bytes []byte) (MQData, error) {
 		return nil, err
 	}
 	return &temp, nil
-}
-
-// Check 检查数据是否超时
-func (mq *TimeoutMQData) Check() bool {
-	return time.Now().After(mq.Timeout)
 }

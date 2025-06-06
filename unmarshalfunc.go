@@ -15,12 +15,14 @@ func (mq MQDataType) HeadBytes() byte {
 const (
 	DefaultMQFunc MQDataType = 200 + iota // 默认队列数据(也是默认内置类型的最小类型,自定义的类型最好不要定义大于这个值)
 	TimeoutMQFunc                         // 超时队列数据
+	StringMQFunc                          // 字符串数据
 )
 
 var (
 	UnMarshalFuncMap = map[MQDataType]func([]byte) (MQData, error){
 		DefaultMQFunc: DefaultUnmarshal,
 		TimeoutMQFunc: TimeoutMQDataUnmarshal,
+		StringMQFunc:  StringMQDataUnmarshal,
 	}
 )
 
