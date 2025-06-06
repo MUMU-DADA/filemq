@@ -402,7 +402,7 @@ func (f *FileMQ) readMQDatas() (map[int]MQData, error) {
 		}
 		bytes := scanner.Bytes()
 		mqDataType, mqData := cutFileLine(bytes)
-		unmarshalFunc, ok := UnMarshalFuncMap[mqDataType]
+		unmarshalFunc, ok := f.unmarshalFuncMap[mqDataType]
 		if !ok {
 			// 目标数据的类型不受支持,不标记清除数据,直接跳过
 			continue
