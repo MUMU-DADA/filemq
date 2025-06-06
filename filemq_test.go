@@ -6,6 +6,34 @@ import (
 	"time"
 )
 
+func TestNew(t *testing.T) {
+	mqFile1 := "test_filemq1.filemq"
+	mqFile2 := "test_filemq2.filemq"
+
+	mq, err := New(mqFile1, 10, map[MQDataType]func([]byte) (MQData, error){
+		DefaultMQFunc: DefaultUnmarshal,
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	defer mq.Close()
+
+	_, err = New(mqFile1, 10, map[MQDataType]func([]byte) (MQData, error){
+		TimeoutMQFunc: TimeoutMQDataUnmarshal,
+	})
+	if err == nil {
+		t.Error("mq2 should be error")
+	}
+
+	mq3, err := New(mqFile2, 10, map[MQDataType]func([]byte) (MQData, error){
+		DefaultMQFunc: DefaultUnmarshal,
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	defer mq3.Close()
+}
+
 func TestTimeoutDataCheck(t *testing.T) {
 	tempFile := "test_timeout.filemq"
 

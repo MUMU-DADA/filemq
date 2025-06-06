@@ -2,13 +2,19 @@ package filemq
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
+)
+
+var (
+	initMQMap = sync.Map{} // 初始化的队列数据 用于防止监听同名文件的队列
 )
 
 const (
@@ -96,7 +102,19 @@ func (f *FileMQ) Close() []MQData {
 		}
 	}
 
+	// 在关闭的最后移除注册
+	absPath, _ := filepath.Abs(f.filePath)
+	initMQMap.Delete(absPath)
+
 	return outdata
+}
+
+// AddUnmarshalFunc 添加反序列化函数 (用于工作时需要额外处理新类型时添加额外的类型解析函数)
+func (f *FileMQ) AddUnmarshalFunc(mqType MQDataType, unmarshalFunc func([]byte) (MQData, error)) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	f.unmarshalFuncMap[mqType] = unmarshalFunc
 }
 
 // 读取文件队列
@@ -153,13 +171,33 @@ func (f *FileMQ) TryWrite(data MQData) bool {
 
 // 初始化文件队列
 func (f *FileMQ) init() error {
+	// 检查目标文件是否已经被队列监听
+	// 获取完整文件路径
+	// 获取绝对路径
+	absPath, err := filepath.Abs(f.filePath)
+	if err != nil {
+		return fmt.Errorf("get absolute path error: %v", err)
+	}
+
+	_, ok := initMQMap.Load(absPath)
+	if ok {
+		// 不允许多个实例监听同一个文件
+		return errors.New("mq file is already in use")
+	}
+
 	// 尝试打开文件,如果文件不存在则创建
 	file, err := os.OpenFile(f.filePath, os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	return file.Sync()
+
+	if err := file.Sync(); err != nil {
+		return err
+	}
+
+	initMQMap.Store(absPath, struct{}{}) // 记录初始化
+	return nil
 }
 
 // 循环监听读取
